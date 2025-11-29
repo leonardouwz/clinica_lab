@@ -141,23 +141,23 @@ class PerformanceTester:
     def ejecutar_todos_los_tests(self):
         """Ejecutar batería completa de tests"""
         print("\n" + "="*80)
-        print("🔬 TEST DE RENDIMIENTO Y OPTIMIZACIÓN")
+        print("TEST DE RENDIMIENTO Y OPTIMIZACIÓN")
         print("="*80)
         
         # Test 1: Búsqueda de paciente
-        print("\n📋 Test 1: Búsqueda de paciente por ID")
+        print("\nTest 1: Búsqueda de paciente por ID")
         resultado, tiempo = self.test_busqueda_paciente_sin_indice(100)
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ {'Encontrado' if resultado else 'No encontrado'}")
         
         # Test 2: Órdenes de un paciente
-        print("\n📋 Test 2: Órdenes de un paciente (con índice)")
+        print("\nTest 2: Órdenes de un paciente (con índice)")
         resultado, tiempo = self.test_busqueda_ordenes_paciente(100)
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ Órdenes encontradas: {len(resultado)}")
         
         # Test 3: Estadísticas por período
-        print("\n📊 Test 3: Estadísticas de últimos 30 días (REQUISITO 6)")
+        print("\nTest 3: Estadísticas de últimos 30 días (REQUISITO 6)")
         resultado, tiempo = self.test_estadisticas_periodo(30)
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ Tipos de análisis: {len(resultado)}")
@@ -165,19 +165,19 @@ class PerformanceTester:
             print(f"   ✓ Análisis más común: {resultado[0][0]} ({resultado[0][1]} veces)")
         
         # Test 4: Auditoría
-        print("\n🔍 Test 4: Consultar auditoría (REQUISITO 4)")
+        print("\nTest 4: Consultar auditoría (REQUISITO 4)")
         resultado, tiempo = self.test_auditoria_resultado(1000)
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ Registros de auditoría: {len(resultado)}")
         
         # Test 5: Órdenes pendientes
-        print("\n⏳ Test 5: Órdenes pendientes (índice en estado)")
+        print("\nTest 5: Órdenes pendientes (índice en estado)")
         resultado, tiempo = self.test_ordenes_pendientes()
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ Órdenes pendientes: {len(resultado)}")
         
         # Test 6: Top pacientes
-        print("\n🏆 Test 6: Top 100 pacientes con más análisis")
+        print("\nTest 6: Top 100 pacientes con más análisis")
         resultado, tiempo = self.test_top_pacientes_analisis(100)
         print(f"   Tiempo: {tiempo*1000:.2f} ms")
         print(f"   ✓ Pacientes analizados: {len(resultado)}")
@@ -185,12 +185,12 @@ class PerformanceTester:
             print(f"   ✓ Paciente con más análisis: ID {resultado[0][0]} ({resultado[0][1]} análisis)")
         
     print("\n" + "="*80)
-    print("✅ TESTS DE RENDIMIENTO COMPLETADOS")
+    print("TESTS DE RENDIMIENTO COMPLETADOS")
     print("="*80)
 
 def analizar_indices(self):
     """Analizar el uso de índices en las tablas"""
-    print("\n📊 ANÁLISIS DE ÍNDICES")
+    print("\nANÁLISIS DE ÍNDICES")
     print("-"*80)
     
     conn = self.db.get_connection()
@@ -213,7 +213,7 @@ def analizar_indices(self):
             tabla_actual = None
             for schema, tabla, indice, tamaño in indices:
                 if tabla != tabla_actual:
-                    print(f"\n📋 Tabla: {tabla}")
+                    print(f"\nTabla: {tabla}")
                     tabla_actual = tabla
                 print(f"   ├─ {indice}: {tamaño}")
             
@@ -225,7 +225,7 @@ def analizar_indices(self):
             """)
             
             tamaño_total = cursor.fetchone()[0]
-            print(f"\n💾 Tamaño total de índices: {tamaño_total}")
+            print(f"\nTamaño total de índices: {tamaño_total}")
             
     finally:
         self.db.release_connection(conn)

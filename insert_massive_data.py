@@ -68,7 +68,7 @@ class MassiveDataInserter:
     
     def limpiar_datos(self):
         """Limpiar todos los datos de las tablas (CUIDADO!)"""
-        print("\n⚠️  LIMPIANDO DATOS EXISTENTES...")
+        print("\nLIMPIANDO DATOS EXISTENTES...")
         try:
             self.cursor.execute("TRUNCATE TABLE auditoria_accesos RESTART IDENTITY CASCADE;")
             self.cursor.execute("TRUNCATE TABLE resultados RESTART IDENTITY CASCADE;")
@@ -78,13 +78,13 @@ class MassiveDataInserter:
             print("✓ Datos limpiados")
         except Exception as e:
             self.conn.rollback()
-            print(f"❌ Error limpiando datos: {e}")
+            print(f"Error limpiando datos: {e}")
     
     def insertar_pacientes(self, cantidad=10000):
         """
         Insertar pacientes masivamente con encriptación
         """
-        print(f"\n📋 INSERTANDO {cantidad} PACIENTES...")
+        print(f"\nINSERTANDO {cantidad} PACIENTES...")
         print("Esto puede tomar varios minutos debido a la encriptación...")
         
         inicio = datetime.now()
@@ -133,7 +133,7 @@ class MassiveDataInserter:
                     
             except Exception as e:
                 self.cursor.execute("ROLLBACK")
-                print(f"❌ Error en lote {i}-{i+lote_actual}: {e}")
+                print(f"Error en lote {i}-{i+lote_actual}: {e}")
                 errores += lote_actual
         
         tiempo = (datetime.now() - inicio).total_seconds()
@@ -148,14 +148,14 @@ class MassiveDataInserter:
         """
         Insertar órdenes con múltiples análisis
         """
-        print(f"\n🧪 INSERTANDO {cantidad} ÓRDENES...")
+        print(f"\nINSERTANDO {cantidad} ÓRDENES...")
         
         # Obtener IDs de pacientes
         self.cursor.execute("SELECT id FROM pacientes")
         pacientes_ids = [row[0] for row in self.cursor.fetchall()]
         
         if not pacientes_ids:
-            print("❌ No hay pacientes. Inserta pacientes primero.")
+            print("No hay pacientes. Inserta pacientes primero.")
             return 0
         
         print(f"  Pacientes disponibles: {len(pacientes_ids)}")
@@ -214,7 +214,7 @@ class MassiveDataInserter:
                     
             except Exception as e:
                 self.cursor.execute("ROLLBACK")
-                print(f"❌ Error en lote {i}: {e}")
+                print(f"Error en lote {i}: {e}")
         
         tiempo = (datetime.now() - inicio).total_seconds()
         print(f"✓ Órdenes insertadas: {insertados}")
@@ -227,7 +227,7 @@ class MassiveDataInserter:
         """
         Cargar valores de resultados aleatorios
         """
-        print(f"\n📊 CARGANDO RESULTADOS ({porcentaje_completado}% de completitud)...")
+        print(f"\nCARGANDO RESULTADOS ({porcentaje_completado}% de completitud)...")
         
         # Obtener resultados sin valor
         self.cursor.execute("SELECT COUNT(*) FROM resultados WHERE valor IS NULL")
@@ -315,7 +315,7 @@ class MassiveDataInserter:
                     
             except Exception as e:
                 self.cursor.execute("ROLLBACK")
-                print(f"❌ Error en lote {i}: {e}")
+                print(f"Error en lote {i}: {e}")
         
         # Actualizar estados de órdenes
         print("  Actualizando estados de órdenes...")
@@ -345,7 +345,7 @@ class MassiveDataInserter:
     def generar_estadisticas(self):
         """Mostrar estadísticas de los datos insertados"""
         print("\n" + "="*70)
-        print("📈 ESTADÍSTICAS DE DATOS GENERADOS")
+        print("ESTADÍSTICAS DE DATOS GENERADOS")
         print("="*70)
         
         # Contar pacientes
@@ -356,7 +356,7 @@ class MassiveDataInserter:
         # Contar órdenes
         self.cursor.execute("SELECT COUNT(*) FROM ordenes")
         total_ordenes = self.cursor.fetchone()[0]
-        print(f"📋 Órdenes: {total_ordenes:,}")
+        print(f"Órdenes: {total_ordenes:,}")
         
         # Órdenes por estado
         self.cursor.execute("""
@@ -370,7 +370,7 @@ class MassiveDataInserter:
         # Contar resultados
         self.cursor.execute("SELECT COUNT(*) FROM resultados")
         total_resultados = self.cursor.fetchone()[0]
-        print(f"\n🧪 Resultados totales: {total_resultados:,}")
+        print(f"\nResultados totales: {total_resultados:,}")
         
         # Resultados completados vs pendientes
         self.cursor.execute("SELECT COUNT(*) FROM resultados WHERE valor IS NOT NULL")
@@ -388,10 +388,10 @@ class MassiveDataInserter:
         # Auditoría
         self.cursor.execute("SELECT COUNT(*) FROM auditoria_accesos")
         total_auditoria = self.cursor.fetchone()[0]
-        print(f"\n🔍 Registros de auditoría: {total_auditoria:,}")
+        print(f"\nRegistros de auditoría: {total_auditoria:,}")
         
         # Distribución por tipo de análisis
-        print(f"\n📊 Distribución por tipo de análisis:")
+        print(f"\nDistribución por tipo de análisis:")
         self.cursor.execute("""
             SELECT ta.codigo, ta.nombre, COUNT(r.id) as total,
                    SUM(CASE WHEN r.valor IS NOT NULL THEN 1 ELSE 0 END) as completados
@@ -409,7 +409,7 @@ class MassiveDataInserter:
                 pg_size_pretty(pg_database_size(current_database())) as db_size
         """)
         db_size = self.cursor.fetchone()[0]
-        print(f"\n💾 Tamaño de la base de datos: {db_size}")
+        print(f"\nTamaño de la base de datos: {db_size}")
         
         print("="*70)
 
@@ -418,7 +418,7 @@ def menu_principal():
     inserter = MassiveDataInserter()
     
     print("\n" + "="*70)
-    print("🏥 SISTEMA DE INSERCIÓN MASIVA DE DATOS - ClinicalLabManager")
+    print("SISTEMA DE INSERCIÓN MASIVA DE DATOS - ClinicalLabManager")
     print("="*70)
     
     inserter.conectar()
@@ -432,7 +432,7 @@ def menu_principal():
         print("3. Cargar resultados")
         print("4. Proceso completo (Pacientes + Órdenes + Resultados)")
         print("5. Ver estadísticas")
-        print("6. Limpiar todos los datos (⚠️ PELIGRO)")
+        print("6. Limpiar todos los datos (PELIGRO)")
         print("0. Salir")
         print("-"*70)
         
@@ -454,7 +454,7 @@ def menu_principal():
             inserter.cargar_resultados_masivos(porcentaje)
             
         elif opcion == "4":
-            print("\n🚀 PROCESO COMPLETO DE INSERCIÓN")
+            print("\nPROCESO COMPLETO DE INSERCIÓN")
             print("Este proceso insertará:")
             print("  - 10,000 pacientes")
             print("  - 50,000 órdenes")
@@ -471,26 +471,26 @@ def menu_principal():
                 inserter.generar_estadisticas()
                 
                 tiempo_total = (datetime.now() - inicio_total).total_seconds()
-                print(f"\n✅ PROCESO COMPLETO FINALIZADO")
-                print(f"⏱️  Tiempo total: {tiempo_total/60:.2f} minutos")
+                print(f"\nPROCESO COMPLETO FINALIZADO")
+                print(f"⏱ Tiempo total: {tiempo_total/60:.2f} minutos")
             
         elif opcion == "5":
             inserter.generar_estadisticas()
             
         elif opcion == "6":
-            print("\n⚠️  ADVERTENCIA: Esto eliminará TODOS los datos")
+            print("\nADVERTENCIA: Esto eliminará TODOS los datos")
             confirmar = input("Escriba 'CONFIRMAR' para continuar: ").strip()
             if confirmar == "CONFIRMAR":
                 inserter.limpiar_datos()
             else:
-                print("❌ Operación cancelada")
+                print("Operación cancelada")
                 
         elif opcion == "0":
-            print("\n👋 Saliendo...")
+            print("\nSaliendo...")
             break
             
         else:
-            print("❌ Opción inválida")
+            print("Opción inválida")
     
     inserter.desconectar()
 

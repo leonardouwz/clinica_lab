@@ -13,10 +13,24 @@ DB_CONFIG = {
 }
 
 # REQUISITO 3: Clave para encriptación (guardar de forma segura)
-# Leer ENCRYPTION_KEY desde la variable de entorno si está presente (como base64 string),
-# si no, generar una nueva clave (en producción debe definirse la variable de entorno).
+# IMPORTANTE: Esta clave debe ser persistente y guardada de forma segura
 _env_key = os.getenv('ENCRYPTION_KEY')
+
 if _env_key:
+    # Si existe en variable de entorno, usarla
     ENCRYPTION_KEY = _env_key.encode()
 else:
-    ENCRYPTION_KEY = Fernet.generate_key()  # En producción establecer ENCRYPTION_KEY en la configuración
+    # Si no existe, crear archivo con la clave
+    key_file = 'encryption.key'
+    
+    if os.path.exists(key_file):
+        # Leer clave existente
+        with open(key_file, 'rb') as f:
+            ENCRYPTION_KEY = f.read()
+    else:
+        # Generar nueva clave y guardarla
+        ENCRYPTION_KEY = Fernet.generate_key()
+        with open(key_file, 'wb') as f:
+            f.write(ENCRYPTION_KEY)
+        print(f"NUEVA CLAVE DE ENCRIPTACIÓN GENERADA Y GUARDADA EN '{key_file}'")
+        print("IMPORTANTE: Guarde este archivo de forma segura. Sin él, no podrá desencriptar los datos.")

@@ -1,0 +1,24 @@
+# Clave de encriptación - NUNCA subir a Git
+encryption.key
+
+# Variables de entorno
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Reportes y exports
+*.csv
+*.txt
+reporte_*.txt
+resultados.csv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo

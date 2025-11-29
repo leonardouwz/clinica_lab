@@ -166,12 +166,9 @@ class ClinicalLabManager:
                         id_pac, nombre_enc, dni_enc, fecha_nac, tel_enc, created = resultado
                         
                         # Convertir memoryview a bytes si es necesario
-                        if isinstance(nombre_enc, memoryview):
-                            nombre_enc = bytes(nombre_enc)
-                        if isinstance(dni_enc, memoryview):
-                            dni_enc = bytes(dni_enc)
-                        if tel_enc and isinstance(tel_enc, memoryview):
-                            tel_enc = bytes(tel_enc)
+                        nombre_enc = bytes(nombre_enc) if isinstance(nombre_enc, memoryview) else nombre_enc
+                        dni_enc = bytes(dni_enc) if isinstance(dni_enc, memoryview) else dni_enc
+                        tel_enc = bytes(tel_enc) if tel_enc and isinstance(tel_enc, memoryview) else tel_enc
                         
                         nombre = db.desencriptar(nombre_enc)
                         dni = db.desencriptar(dni_enc)
@@ -726,11 +723,11 @@ class ClinicalLabManager:
                 messagebox.showinfo("Éxito", f"Análisis agregado con ID: {nuevo_id}")
                 self.actualizar_lista_analisis()
                 # Limpiar campos
-                self.entry_nuevo_codigo.delete(0, ttk.END)
-                self.entry_nuevo_nombre.delete(0, ttk.END)
-                self.entry_nuevo_min.delete(0, ttk.END)
-                self.entry_nuevo_max.delete(0, ttk.END)
-                self.entry_nuevo_unidad.delete(0, ttk.END)
+                self.entry_nuevo_codigo.delete(0, tk.END)
+                self.entry_nuevo_nombre.delete(0, tk.END)
+                self.entry_nuevo_min.delete(0, tk.END)
+                self.entry_nuevo_max.delete(0, tk.END)
+                self.entry_nuevo_unidad.delete(0, tk.END)
             else:
                 messagebox.showerror("Error", mensaje)
         except ValueError:
@@ -789,7 +786,7 @@ class ClinicalLabManager:
         resultado = extra.buscar_paciente_por_dni(dni)
         
         self.text_busqueda.config(state='normal')
-        self.text_busqueda.delete(1.0, ttk.END)
+        self.text_busqueda.delete(1.0, tk.END)
         
         if resultado:
             texto = f"""
@@ -820,7 +817,7 @@ class ClinicalLabManager:
         resultados = extra.buscar_paciente_por_nombre(nombre)
         
         self.text_busqueda.config(state='normal')
-        self.text_busqueda.delete(1.0, ttk.END)
+        self.text_busqueda.delete(1.0, tk.END)
         
         if resultados:
             texto = f"RESULTADOS ENCONTRADOS: {len(resultados)}\n"

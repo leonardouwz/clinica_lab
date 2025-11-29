@@ -89,14 +89,20 @@ class FuncionalidadesExtra:
                 
                 # Buscar desencriptando
                 for pac in pacientes:
-                    dni_desenc = self.db.desencriptar(pac[2])
+                    # Convertir memoryview a bytes si es necesario
+                    dni_enc = bytes(pac[2]) if isinstance(pac[2], memoryview) else pac[2]
+                    dni_desenc = self.db.desencriptar(dni_enc)
+                    
                     if dni_desenc == dni:
+                        nombre_enc = bytes(pac[1]) if isinstance(pac[1], memoryview) else pac[1]
+                        tel_enc = bytes(pac[4]) if pac[4] and isinstance(pac[4], memoryview) else pac[4]
+                        
                         return {
                             'id': pac[0],
-                            'nombre': self.db.desencriptar(pac[1]),
+                            'nombre': self.db.desencriptar(nombre_enc),
                             'dni': dni_desenc,
                             'fecha_nacimiento': pac[3],
-                            'telefono': self.db.desencriptar(pac[4]) if pac[4] else None
+                            'telefono': self.db.desencriptar(tel_enc) if tel_enc else None
                         }
                 
                 return None
@@ -121,12 +127,17 @@ class FuncionalidadesExtra:
                 nombre_parcial = nombre_parcial.lower()
                 
                 for pac in pacientes:
-                    nombre_desenc = self.db.desencriptar(pac[1]).lower()
+                    # Convertir memoryview a bytes si es necesario
+                    nombre_enc = bytes(pac[1]) if isinstance(pac[1], memoryview) else pac[1]
+                    dni_enc = bytes(pac[2]) if isinstance(pac[2], memoryview) else pac[2]
+                    
+                    nombre_desenc = self.db.desencriptar(nombre_enc).lower()
+                    
                     if nombre_parcial in nombre_desenc:
                         resultados.append({
                             'id': pac[0],
-                            'nombre': self.db.desencriptar(pac[1]),
-                            'dni': self.db.desencriptar(pac[2])
+                            'nombre': self.db.desencriptar(nombre_enc),
+                            'dni': self.db.desencriptar(dni_enc)
                         })
                 
                 return resultados
@@ -219,10 +230,15 @@ class FuncionalidadesExtra:
                 if not pac:
                     return False, "Paciente no encontrado"
                 
-                nombre = self.db.desencriptar(pac[0])
-                dni = self.db.desencriptar(pac[1])
+                # Convertir memoryview a bytes si es necesario
+                nombre_enc = bytes(pac[0]) if isinstance(pac[0], memoryview) else pac[0]
+                dni_enc = bytes(pac[1]) if isinstance(pac[1], memoryview) else pac[1]
+                tel_enc = bytes(pac[3]) if pac[3] and isinstance(pac[3], memoryview) else pac[3]
+                
+                nombre = self.db.desencriptar(nombre_enc)
+                dni = self.db.desencriptar(dni_enc)
                 fecha_nac = pac[2]
-                telefono = self.db.desencriptar(pac[3]) if pac[3] else "N/A"
+                telefono = self.db.desencriptar(tel_enc) if tel_enc else "N/A"
                 created = pac[4]
             
             # Historial

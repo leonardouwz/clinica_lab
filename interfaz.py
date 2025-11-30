@@ -656,6 +656,11 @@ class ClinicalLabManager:
         sub_notebook.add(tab_alertas, text="Alertas")
         
         sub_notebook.pack(expand=True, fill='both')
+
+        # Sub-tab 5: Modificación de Datos
+        tab_modificar = ttk.Frame(sub_notebook)
+        self.crear_subtab_modificacion(tab_modificar)
+        sub_notebook.add(tab_modificar, text="Modificar Datos")
     def crear_subtab_analisis(self, parent):
         """Gestión de tipos de análisis"""
         frame = ttk.LabelFrame(parent, text="Agregar Nuevo Tipo de Análisis", padding=10)
@@ -773,6 +778,15 @@ class ClinicalLabManager:
         # Resultados
         self.text_busqueda = tk.Text(frame, height=20, width=80, state='disabled')
         self.text_busqueda.pack(fill='both', expand=True, padx=10, pady=10)
+        # Botón para ver historial completo
+        frame_historial = ttk.Frame(frame)
+        frame_historial.pack(fill='x', padx=10, pady=10)
+
+        ttk.Label(frame_historial, text="Ver Historial Completo:").pack(side='left', padx=5)
+        self.entry_historial_id = ttk.Entry(frame_historial, width=20)
+        self.entry_historial_id.pack(side='left', padx=5)
+        ttk.Button(frame_historial, text="Ver Historial", 
+        command=self.ver_historial_completo).pack(side='left', padx=5)
     def buscar_por_dni(self):
         """Buscar paciente por DNI"""
         from funcionalidades_extra import FuncionalidadesExtra
@@ -831,6 +845,48 @@ class ClinicalLabManager:
             self.text_busqueda.insert(1.0, "No se encontraron pacientes con ese nombre")
         
         self.text_busqueda.config(state='disabled')
+
+    def ver_historial_completo(self):
+        """Ver historial completo de análisis de un paciente"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        try:
+            paciente_id = int(self.entry_historial_id.get())
+            historial = extra.obtener_historial_paciente(paciente_id)
+            
+            self.text_busqueda.config(state='normal')
+            self.text_busqueda.delete(1.0, tk.END)
+            
+            if historial:
+                texto = f"HISTORIAL COMPLETO - PACIENTE ID: {paciente_id}\n"
+                texto += "="*70 + "\n\n"
+                
+                orden_actual = None
+                for row in historial:
+                    orden_id, fecha_orden, estado, analisis, valor, fecha_res, fuera, vmin, vmax, unidad = row
+                    
+                    if orden_id != orden_actual:
+                        texto += f"\n{'─'*70}\n"
+                        texto += f"ORDEN #{orden_id} - {fecha_orden} - Estado: {estado}\n"
+                        texto += f"{'─'*70}\n"
+                        orden_actual = orden_id
+                    
+                    alerta = " FUERA DE RANGO" if fuera else ""
+                    texto += f"  • {analisis}: {valor} {unidad} (Rango: {vmin}-{vmax}){alerta}\n"
+                    if fecha_res:
+                        texto += f"    Fecha resultado: {fecha_res}\n"
+                
+                self.text_busqueda.insert(1.0, texto)
+            else:
+                self.text_busqueda.insert(1.0, "No se encontró historial para este paciente")
+            
+            self.text_busqueda.config(state='disabled')
+        except ValueError:
+            messagebox.showerror("Error", "ID debe ser numérico")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
+    
     def crear_subtab_reportes(self, parent):
         """Generación de reportes"""
         frame = ttk.Frame(parent, padding=20)
@@ -857,6 +913,19 @@ class ClinicalLabManager:
         self.entry_export_orden.pack(side='left', padx=5)
         ttk.Button(frame_csv, text="Exportar CSV",
                 command=self.exportar_csv).pack(side='left', padx=5)
+        # Estadísticas de paciente específico
+        frame_stats_pac = ttk.LabelFrame(frame, text="Estadísticas de Paciente", padding=10)
+        frame_stats_pac.pack(fill='x', padx=10, pady=10)
+
+        ttk.Label(frame_stats_pac, text="ID Paciente:").pack(side='left', padx=5)
+        self.entry_stats_paciente = ttk.Entry(frame_stats_pac, width=20)
+        self.entry_stats_paciente.pack(side='left', padx=5)
+        ttk.Button(frame_stats_pac, text="Ver Estadísticas",
+                command=self.ver_estadisticas_paciente).pack(side='left', padx=5)
+
+        # Área de resultados de estadísticas
+        self.text_stats_paciente = tk.Text(frame, height=15, width=80, state='disabled')
+        self.text_stats_paciente.pack(fill='both', expand=True, padx=10, pady=10)
     def generar_reporte_paciente(self):
         """Generar reporte de paciente"""
         from funcionalidades_extra import FuncionalidadesExtra
@@ -886,6 +955,40 @@ class ClinicalLabManager:
                 messagebox.showerror("Error", mensaje)
         except ValueError:
             messagebox.showerror("Error", "ID debe ser numérico")
+
+    def ver_estadisticas_paciente(self):
+        """Ver estadísticas de un paciente específico"""
+        from estadisticas import obtener_estadisticas_paciente
+        
+        try:
+            paciente_id = int(self.entry_stats_paciente.get())
+            stats = obtener_estadisticas_paciente(paciente_id)
+            
+            self.text_stats_paciente.config(state='normal')
+            self.text_stats_paciente.delete(1.0, tk.END)
+            
+            if stats:
+                texto = f"ESTADÍSTICAS - PACIENTE ID: {paciente_id}\n"
+                texto += "="*70 + "\n\n"
+                texto += f"{'Análisis':<25} {'Valor':<12} {'Fecha':<20} {'Estado':<15}\n"
+                texto += "-"*70 + "\n"
+                
+                for row in stats:
+                    nombre, valor, fecha, fuera, vmin, vmax, unidad = row
+                    estado = "FUERA" if fuera else "✓ Normal"
+                    fecha_str = fecha.strftime('%Y-%m-%d %H:%M') if fecha else "N/A"
+                    texto += f"{nombre:<25} {valor:<6}{unidad:<6} {fecha_str:<20} {estado:<15}\n"
+                    texto += f"  Rango normal: {vmin}-{vmax} {unidad}\n\n"
+                
+                self.text_stats_paciente.insert(1.0, texto)
+            else:
+                self.text_stats_paciente.insert(1.0, "No hay estadísticas para este paciente")
+            
+            self.text_stats_paciente.config(state='disabled')
+        except ValueError:
+            messagebox.showerror("Error", "ID debe ser numérico")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
     def crear_subtab_alertas(self, parent):
         """Sistema de alertas"""
         frame = ttk.Frame(parent, padding=20)
@@ -903,6 +1006,20 @@ class ClinicalLabManager:
         ttk.Button(frame, text="Actualizar Alertas",
                 command=self.actualizar_alertas).pack(pady=5)
         self.actualizar_alertas()
+        # Frame para marcar alerta como revisada
+        frame_revisar = ttk.LabelFrame(frame, text="Marcar Alerta como Revisada", padding=10)
+        frame_revisar.pack(fill='x', padx=10, pady=10)
+
+        ttk.Label(frame_revisar, text="ID Resultado:").grid(row=0, column=0, padx=5, pady=5)
+        self.entry_alerta_id = ttk.Entry(frame_revisar, width=15)
+        self.entry_alerta_id.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(frame_revisar, text="Observaciones:").grid(row=1, column=0, padx=5, pady=5, sticky='nw')
+        self.text_observaciones = tk.Text(frame_revisar, height=3, width=50)
+        self.text_observaciones.grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Button(frame_revisar, text="Marcar como Revisada",
+                command=self.marcar_alerta_revisada).grid(row=2, column=1, pady=10, sticky='w')
     def actualizar_alertas(self):
         """Actualizar lista de alertas"""
         from funcionalidades_extra import FuncionalidadesExtra
@@ -917,7 +1034,177 @@ class ClinicalLabManager:
             rango_texto = f"{vmin}-{vmax} {unidad}"
             valores = (res_id, ord_id, pac_id, analisis, f"{valor} {unidad}", rango_texto, tipo)
             self.tree_alertas.insert('', 'end', values=valores)
+
+    def crear_subtab_modificacion(self, parent):
+        """Modificación de pacientes y cancelación de órdenes"""
+        frame = ttk.Frame(parent, padding=20)
+        frame.pack(fill='both', expand=True)
         
+        # Modificar paciente
+        frame_mod_pac = ttk.LabelFrame(frame, text="Modificar Datos de Paciente", padding=10)
+        frame_mod_pac.pack(fill='x', padx=10, pady=10)
+        
+        ttk.Label(frame_mod_pac, text="ID Paciente:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_pac_id = ttk.Entry(frame_mod_pac, width=20)
+        self.entry_mod_pac_id.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_mod_pac, text="Nuevo Nombre:").grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_nombre = ttk.Entry(frame_mod_pac, width=40)
+        self.entry_mod_nombre.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_mod_pac, text="Nuevo Teléfono:").grid(row=2, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_telefono = ttk.Entry(frame_mod_pac, width=40)
+        self.entry_mod_telefono.grid(row=2, column=1, padx=5, pady=5)
+        
+        ttk.Button(frame_mod_pac, text="Modificar Paciente",
+                command=self.modificar_paciente).grid(row=3, column=1, pady=10, sticky='w')
+        
+        # Cancelar orden
+        frame_cancel = ttk.LabelFrame(frame, text="Cancelar Orden", padding=10)
+        frame_cancel.pack(fill='x', padx=10, pady=10)
+        
+        ttk.Label(frame_cancel, text="ID Orden:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        self.entry_cancel_orden = ttk.Entry(frame_cancel, width=20)
+        self.entry_cancel_orden.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_cancel, text="Motivo:").grid(row=1, column=0, sticky='nw', padx=5, pady=5)
+        self.text_motivo_cancel = tk.Text(frame_cancel, height=3, width=50)
+        self.text_motivo_cancel.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Button(frame_cancel, text="Cancelar Orden",
+                command=self.cancelar_orden).grid(row=2, column=1, pady=10, sticky='w')
+        
+        # Modificar rangos de análisis
+        frame_mod_rangos = ttk.LabelFrame(frame, text="Modificar Rangos de Análisis", padding=10)
+        frame_mod_rangos.pack(fill='x', padx=10, pady=10)
+        
+        ttk.Label(frame_mod_rangos, text="ID Tipo Análisis:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_tipo_id = ttk.Entry(frame_mod_rangos, width=20)
+        self.entry_mod_tipo_id.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_mod_rangos, text="Nuevo Mínimo:").grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_min = ttk.Entry(frame_mod_rangos, width=20)
+        self.entry_mod_min.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_mod_rangos, text="Nuevo Máximo:").grid(row=2, column=0, sticky='w', padx=5, pady=5)
+        self.entry_mod_max = ttk.Entry(frame_mod_rangos, width=20)
+        self.entry_mod_max.grid(row=2, column=1, padx=5, pady=5)
+        
+        ttk.Button(frame_mod_rangos, text="Modificar Rangos",
+                command=self.modificar_rangos).grid(row=3, column=1, pady=10, sticky='w')
+
+    def modificar_paciente(self):
+        """Modificar datos de un paciente"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        try:
+            paciente_id = int(self.entry_mod_pac_id.get())
+            nombre = self.entry_mod_nombre.get().strip()
+            telefono = self.entry_mod_telefono.get().strip()
+            
+            if not nombre and not telefono:
+                messagebox.showwarning("Advertencia", "Ingrese al menos un dato a modificar")
+                return
+            
+            success, mensaje = extra.modificar_paciente(
+                paciente_id, 
+                nombre if nombre else None, 
+                telefono if telefono else None
+            )
+            
+            if success:
+                messagebox.showinfo("Éxito", mensaje)
+                self.entry_mod_pac_id.delete(0, tk.END)
+                self.entry_mod_nombre.delete(0, tk.END)
+                self.entry_mod_telefono.delete(0, tk.END)
+            else:
+                messagebox.showerror("Error", mensaje)
+        except ValueError:
+            messagebox.showerror("Error", "ID debe ser numérico")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
+
+    def cancelar_orden(self):
+        """Cancelar una orden"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        try:
+            orden_id = int(self.entry_cancel_orden.get())
+            motivo = self.text_motivo_cancel.get(1.0, tk.END).strip()
+            
+            if not motivo:
+                messagebox.showwarning("Advertencia", "Ingrese el motivo de cancelación")
+                return
+            
+            success, mensaje = extra.cancelar_orden(orden_id, self.usuario_actual, motivo)
+            
+            if success:
+                messagebox.showinfo("Éxito", mensaje)
+                self.entry_cancel_orden.delete(0, tk.END)
+                self.text_motivo_cancel.delete(1.0, tk.END)
+            else:
+                messagebox.showerror("Error", mensaje)
+        except ValueError:
+            messagebox.showerror("Error", "ID debe ser numérico")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
+
+    def modificar_rangos(self):
+        """Modificar rangos de un tipo de análisis"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        try:
+            tipo_id = int(self.entry_mod_tipo_id.get())
+            nuevo_min = float(self.entry_mod_min.get())
+            nuevo_max = float(self.entry_mod_max.get())
+            
+            success, mensaje = extra.modificar_rangos_analisis(tipo_id, nuevo_min, nuevo_max)
+            
+            if success:
+                messagebox.showinfo("Éxito", mensaje)
+                self.entry_mod_tipo_id.delete(0, tk.END)
+                self.entry_mod_min.delete(0, tk.END)
+                self.entry_mod_max.delete(0, tk.END)
+                self.actualizar_lista_analisis()
+            else:
+                messagebox.showerror("Error", mensaje)
+        except ValueError:
+            messagebox.showerror("Error", "Los valores deben ser numéricos")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
+        
+    def marcar_alerta_revisada(self):
+        """Marcar una alerta como revisada"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        try:
+            resultado_id = int(self.entry_alerta_id.get())
+            observaciones = self.text_observaciones.get(1.0, tk.END).strip()
+            
+            if not observaciones:
+                messagebox.showwarning("Advertencia", "Ingrese observaciones")
+                return
+            
+            success, mensaje = extra.marcar_alerta_revisada(
+                resultado_id, self.usuario_actual, observaciones
+            )
+            
+            if success:
+                messagebox.showinfo("Éxito", mensaje)
+                self.entry_alerta_id.delete(0, tk.END)
+                self.text_observaciones.delete(1.0, tk.END)
+                self.actualizar_alertas()
+            else:
+                messagebox.showerror("Error", mensaje)
+        except ValueError:
+            messagebox.showerror("Error", "ID debe ser numérico")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {str(e)}")
+
     def run(self):
         """Iniciar la aplicación"""
         self.root.mainloop()

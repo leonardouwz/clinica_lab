@@ -14,7 +14,7 @@ __pycache__/
 # Reportes y exports
 *.csv
 *.txt
-reporte_*.txt
+reporte_paciente.txt
 resultados.csv
 
 # IDEs

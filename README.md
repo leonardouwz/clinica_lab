@@ -509,3 +509,9 @@ ClinicalLabManager es un sistema robusto y seguro para la gestión completa de l
 - Alertas de valores anormales
 - Reportes y estadísticas detalladas
 - Cumplimiento de normativas de privacidad de datos
+- 
+
+## Autor
+
+Leonardo Raphael Pachari Gomez
+lpacharig@ulasalle.edu.pe

@@ -216,43 +216,68 @@ class ClinicalLabManager:
         ttk.Label(frame, text="Seleccionar Análisis:").grid(row=2, column=0, sticky='nw', pady=5)
         
         # Frame para los checkboxes
-        frame_analisis = ttk.LabelFrame(frame, text="Análisis Disponibles", padding=10)
-        frame_analisis.grid(row=2, column=1, sticky='w', pady=10)
+        self.frame_analisis = ttk.LabelFrame(frame, text="Análisis Disponibles", padding=10)
+        self.frame_analisis.grid(row=2, column=1, sticky='w', pady=10)
         
         self.analisis_vars = {}
-        analisis_disponibles = [
-            (1, 'HEM - Hemograma Completo (4.5-5.5 mill/μL)'),
-            (2, 'GLU - Glucosa en Sangre (70-100 mg/dL)'),
-            (3, 'COL - Colesterol Total (0-200 mg/dL)'),
-            (4, 'TRI - Triglicéridos (0-150 mg/dL)'),
-            (5, 'CRE - Creatinina (0.6-1.2 mg/dL)')
-        ]
+        self.cargar_analisis_disponibles()
         
-        for id_analisis, nombre in analisis_disponibles:
-            var = tk.BooleanVar()
-            self.analisis_vars[id_analisis] = var
-            ttk.Checkbutton(frame_analisis, text=nombre, variable=var).pack(anchor='w', pady=2)
+        # Botón para actualizar lista de análisis
+        ttk.Button(
+            frame,
+            text="Actualizar Lista de Análisis",
+            command=self.cargar_analisis_disponibles
+        ).grid(row=3, column=1, pady=5, sticky='w')
         
         ttk.Button(
             frame, 
             text="Registrar Orden",
             command=self.registrar_orden_click
-        ).grid(row=3, column=1, pady=20, sticky='w')
+        ).grid(row=4, column=1, pady=20, sticky='w')
+        
+        # Área de información de IDs de resultados creados
+        ttk.Label(frame, text="IDs DE RESULTADOS CREADOS", font=('Arial', 12, 'bold')).grid(
+            row=5, column=0, columnspan=2, pady=(20, 10)
+        )
+        
+        self.text_ids_resultados = tk.Text(frame, height=4, width=80, state='disabled')
+        self.text_ids_resultados.grid(row=6, column=0, columnspan=2, pady=5)
         
         # Área de información
         ttk.Label(frame, text="ÓRDENES RECIENTES", font=('Arial', 12, 'bold')).grid(
-            row=4, column=0, columnspan=2, pady=(20, 10)
+            row=7, column=0, columnspan=2, pady=(20, 10)
         )
         
         self.text_ordenes = tk.Text(frame, height=12, width=80, state='disabled')
-        self.text_ordenes.grid(row=5, column=0, columnspan=2, pady=5)
+        self.text_ordenes.grid(row=8, column=0, columnspan=2, pady=5)
         
         ttk.Button(
             frame,
             text="Actualizar Lista",
             command=self.actualizar_ordenes_recientes
-        ).grid(row=6, column=1, pady=5, sticky='e')
+        ).grid(row=9, column=1, pady=5, sticky='e')
     
+    def cargar_analisis_disponibles(self):
+        """Cargar análisis disponibles dinámicamente desde la BD"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
+        
+        # Limpiar checkboxes existentes
+        for widget in self.frame_analisis.winfo_children():
+            widget.destroy()
+        
+        self.analisis_vars.clear()
+        
+        # Cargar análisis desde BD
+        analisis_list = extra.listar_tipos_analisis()
+        
+        for analisis in analisis_list:
+            id_analisis, codigo, nombre, vmin, vmax, unidad = analisis
+            var = tk.BooleanVar()
+            self.analisis_vars[id_analisis] = var
+            texto = f"{codigo} - {nombre} ({vmin}-{vmax} {unidad})"
+            ttk.Checkbutton(self.frame_analisis, text=texto, variable=var).pack(anchor='w', pady=2)
+
     def registrar_orden_click(self):
         """Registrar nueva orden con transacción"""
         try:
@@ -266,15 +291,25 @@ class ClinicalLabManager:
                 return
             
             # REQUISITO 1: Transacción para registrar orden
-            orden_id, mensaje = registrar_orden_con_analisis(
+            orden_id, mensaje, ids_resultados = registrar_orden_con_analisis(
                 paciente_id, analisis_seleccionados, self.usuario_actual
             )
             
             if orden_id:
+                # Mostrar IDs de resultados creados
+                texto_ids = f"Orden #{orden_id} - IDs de Resultados creados:\n"
+                texto_ids += ", ".join(str(id_res) for id_res in ids_resultados)
+                
+                self.text_ids_resultados.config(state='normal')
+                self.text_ids_resultados.delete(1.0, tk.END)
+                self.text_ids_resultados.insert(1.0, texto_ids)
+                self.text_ids_resultados.config(state='disabled')
+                
                 messagebox.showinfo("Éxito", 
                     f"✓ Orden #{orden_id} registrada exitosamente\n\n"
                     f"Análisis solicitados: {len(analisis_seleccionados)}\n"
                     f"Paciente ID: {paciente_id}\n"
+                    f"IDs de Resultados: {', '.join(str(id_res) for id_res in ids_resultados)}\n"
                     f"{mensaje}"
                 )
                 self.entry_paciente_id.delete(0, tk.END)

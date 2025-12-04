@@ -9,6 +9,7 @@ db = Database()
 def registrar_orden_con_analisis(paciente_id, lista_analisis_ids, usuario):
     """
     Transacción ACID para registrar una orden con múltiples análisis
+    Retorna también los IDs de los resultados creados
     """
     conn = db.get_connection()
     try:
@@ -26,13 +27,18 @@ def registrar_orden_con_analisis(paciente_id, lista_analisis_ids, usuario):
                 
                 orden_id = cursor.fetchone()[0]
                 
-                # 2. Insertar todos los análisis solicitados
+                # 2. Insertar todos los análisis solicitados y guardar IDs
+                ids_resultados = []
                 for analisis_id in lista_analisis_ids:
                     cursor.execute("""
                         INSERT INTO resultados 
                         (orden_id, tipo_analisis_id, usuario_carga)
                         VALUES (%s, %s, %s)
+                        RETURNING id
                     """, (orden_id, analisis_id, usuario))
+                    
+                    resultado_id = cursor.fetchone()[0]
+                    ids_resultados.append(resultado_id)
                 
                 # REQUISITO 4: Registrar en auditoría
                 registrar_auditoria(
@@ -43,11 +49,11 @@ def registrar_orden_con_analisis(paciente_id, lista_analisis_ids, usuario):
                 # Commit de la transacción
                 cursor.execute("COMMIT")
                 
-                return orden_id, "Orden registrada exitosamente"
+                return orden_id, "Orden registrada exitosamente", ids_resultados
                 
     except Exception as e:
         conn.rollback()
-        return None, f"Error en transacción: {str(e)}"
+        return None, f"Error en transacción: {str(e)}", []
     
     finally:
         db.release_connection(conn)

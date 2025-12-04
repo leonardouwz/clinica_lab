@@ -76,6 +76,7 @@ def obtener_estadisticas_periodo_filtradas(fecha_inicio, fecha_fin, tipo_analisi
     
     try:
         with conn.cursor() as cursor:
+            # Base de la consulta
             query = """
                 SELECT 
                     ta.nombre AS analisis,
@@ -96,8 +97,8 @@ def obtener_estadisticas_periodo_filtradas(fecha_inicio, fecha_fin, tipo_analisi
             
             params = [fecha_inicio, fecha_fin]
             
-            # Filtrar por tipo de análisis si se especifica
-            if tipo_analisis_id is not None and tipo_analisis_id != 0:
+            # Filtrar por tipo de análisis si se especifica (y no es "TODOS")
+            if tipo_analisis_id is not None:
                 query += " AND r.tipo_analisis_id = %s"
                 params.append(tipo_analisis_id)
             

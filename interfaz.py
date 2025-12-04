@@ -556,13 +556,15 @@ class ClinicalLabManager:
         ttk.Label(frame_filtros, text="Tipo Análisis:").grid(row=1, column=0, padx=5, pady=5)
         self.combo_tipo_analisis = ttk.Combobox(frame_filtros, width=40, state='readonly')
         self.combo_tipo_analisis.grid(row=1, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
-        self.cargar_tipos_analisis_combo()
         
         ttk.Button(
             frame_filtros,
             text="Generar Estadísticas",
             command=self.mostrar_estadisticas
         ).grid(row=2, column=3, padx=10, pady=5)
+        
+        # Cargar tipos de análisis en el combo
+        self.cargar_tipos_analisis_combo()
         
         # Treeview para estadísticas
         columns = ('Análisis', 'Total', 'Promedio', 'Mínimo', 'Máximo', 'Fuera Rango', '% Fuera')
@@ -577,28 +579,36 @@ class ClinicalLabManager:
         
         self.tree_stats.pack(side='left', fill='both', expand=True, pady=10)
         scrollbar.pack(side='right', fill='y')
+        
+        # Cargar estadísticas iniciales
+        self.mostrar_estadisticas(mostrar_mensaje=False)
 
     def cargar_tipos_analisis_combo(self):
         """Cargar tipos de análisis en el combobox"""
         from funcionalidades_extra import FuncionalidadesExtra
         extra = FuncionalidadesExtra()
         
-        analisis_list = extra.listar_tipos_analisis()
-        
-        # Agregar opción "Todos"
-        valores = ["TODOS"]
-        self.tipos_analisis_dict = {0: "TODOS"}
-        
-        for analisis in analisis_list:
-            id_analisis, codigo, nombre, vmin, vmax, unidad = analisis
-            texto = f"{codigo} - {nombre}"
-            valores.append(texto)
-            self.tipos_analisis_dict[id_analisis] = texto
-        
-        self.combo_tipo_analisis['values'] = valores
-        self.combo_tipo_analisis.current(0)
+        try:
+            analisis_list = extra.listar_tipos_analisis()
+            
+            # Crear diccionario para mapear texto a ID
+            self.tipos_analisis_map = {}
+            valores = ["TODOS"]
+            self.tipos_analisis_map["TODOS"] = None
+            
+            for analisis in analisis_list:
+                id_analisis, codigo, nombre, vmin, vmax, unidad = analisis
+                texto = f"{codigo} - {nombre}"
+                valores.append(texto)
+                self.tipos_analisis_map[texto] = id_analisis
+            
+            self.combo_tipo_analisis['values'] = valores
+            self.combo_tipo_analisis.current(0)  # Seleccionar "TODOS" por defecto
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar tipos de análisis: {str(e)}")
 
-    def mostrar_estadisticas(self):
+    def mostrar_estadisticas(self, mostrar_mensaje=True):
         """REQUISITO 6: Mostrar estadísticas optimizadas por período y tipo"""
         # Limpiar tabla
         for item in self.tree_stats.get_children():
@@ -608,16 +618,25 @@ class ClinicalLabManager:
             fecha_desde = self.entry_fecha_desde.get()
             fecha_hasta = self.entry_fecha_hasta.get()
             
+            # Validar fechas
+            try:
+                datetime.strptime(fecha_desde, '%Y-%m-%d')
+                datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            except ValueError:
+                if mostrar_mensaje:
+                    messagebox.showerror("Error", "Formato de fecha inválido. Use YYYY-MM-DD")
+                return
+            
             # Obtener tipo de análisis seleccionado
             seleccion = self.combo_tipo_analisis.get()
-            tipo_analisis_id = None
             
-            if seleccion != "TODOS":
-                # Buscar ID del tipo seleccionado
-                for id_tipo, texto in self.tipos_analisis_dict.items():
-                    if texto == seleccion:
-                        tipo_analisis_id = id_tipo
-                        break
+            if not seleccion:
+                if mostrar_mensaje:
+                    messagebox.showwarning("Advertencia", "Seleccione un tipo de análisis")
+                return
+            
+            # Obtener el ID del tipo seleccionado
+            tipo_analisis_id = self.tipos_analisis_map.get(seleccion)
             
             # REQUISITO 6: Consulta optimizada de estadísticas
             from estadisticas import obtener_estadisticas_periodo_filtradas
@@ -626,37 +645,23 @@ class ClinicalLabManager:
             )
             
             if not estadisticas:
-                messagebox.showinfo("Sin datos", "No hay resultados en el período seleccionado")
+                if mostrar_mensaje:
+                    messagebox.showinfo("Sin datos", "No hay resultados en el período seleccionado")
                 return
             
             for row in estadisticas:
                 self.tree_stats.insert('', 'end', values=row)
+            
+            # Mostrar mensaje de éxito solo si se solicita
+            if mostrar_mensaje:
+                total_analisis = len(estadisticas)
+                messagebox.showinfo("Éxito", f"Se encontraron estadísticas de {total_analisis} tipo(s) de análisis")
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Error al generar estadísticas: {str(e)}")
-
-    def mostrar_estadisticas(self):
-        """REQUISITO 6: Mostrar estadísticas optimizadas por período"""
-        # Limpiar tabla
-        for item in self.tree_stats.get_children():
-            self.tree_stats.delete(item)
-        
-        try:
-            fecha_desde = self.entry_fecha_desde.get()
-            fecha_hasta = self.entry_fecha_hasta.get()
-            
-            # REQUISITO 6: Consulta optimizada de estadísticas
-            estadisticas = obtener_estadisticas_periodo(fecha_desde, fecha_hasta)
-            
-            if not estadisticas:
-                messagebox.showinfo("Sin datos", "No hay resultados en el período seleccionado")
-                return
-            
-            for row in estadisticas:
-                self.tree_stats.insert('', 'end', values=row)
-                
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al generar estadísticas: {str(e)}")
+            if mostrar_mensaje:
+                messagebox.showerror("Error", f"Error al generar estadísticas: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def crear_tab_auditoria(self, parent):
         """TAB 5: Consultar auditoría de accesos"""

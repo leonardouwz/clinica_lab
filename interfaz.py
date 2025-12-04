@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import filedialog
 from datetime import datetime, timedelta
 from transacciones import *
 from estadisticas import *
@@ -1030,13 +1031,25 @@ class ClinicalLabManager:
         self.text_stats_paciente = tk.Text(frame, height=15, width=80, state='disabled')
         self.text_stats_paciente.pack(fill='both', expand=True, padx=10, pady=10)
     def generar_reporte_paciente(self):
-        """Generar reporte de paciente"""
+        """Generar reporte de paciente con selector de ruta"""
         from funcionalidades_extra import FuncionalidadesExtra
         extra = FuncionalidadesExtra()
         
         try:
             paciente_id = int(self.entry_reporte_paciente.get())
-            success, mensaje = extra.generar_reporte_paciente(paciente_id)
+            
+            # Abrir diálogo para seleccionar ubicación
+            archivo = filedialog.asksaveasfilename(
+                title="Guardar reporte",
+                defaultextension=".txt",
+                filetypes=[("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")],
+                initialfile=f"reporte_paciente_{paciente_id}.txt"
+            )
+            
+            if not archivo:  # Usuario canceló
+                return
+            
+            success, mensaje = extra.generar_reporte_paciente(paciente_id, archivo)
             
             if success:
                 messagebox.showinfo("Éxito", mensaje)
@@ -1044,13 +1057,27 @@ class ClinicalLabManager:
                 messagebox.showerror("Error", mensaje)
         except ValueError:
             messagebox.showerror("Error", "ID debe ser numérico")
+
     def exportar_csv(self):
-        """Exportar resultados a CSV"""
+        """Exportar resultados a CSV con selector de ruta"""
         from funcionalidades_extra import FuncionalidadesExtra
         extra = FuncionalidadesExtra()
+        
         try:
             orden_id = int(self.entry_export_orden.get())
-            success, mensaje = extra.exportar_resultados_csv(orden_id)
+            
+            # Abrir diálogo para seleccionar ubicación
+            archivo = filedialog.asksaveasfilename(
+                title="Guardar archivo CSV",
+                defaultextension=".csv",
+                filetypes=[("Archivos CSV", "*.csv"), ("Todos los archivos", "*.*")],
+                initialfile=f"resultados_orden_{orden_id}.csv"
+            )
+            
+            if not archivo:  # Usuario canceló
+                return
+            
+            success, mensaje = extra.exportar_resultados_csv(orden_id, archivo)
             
             if success:
                 messagebox.showinfo("Éxito", mensaje)

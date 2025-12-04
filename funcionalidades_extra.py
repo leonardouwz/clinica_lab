@@ -272,7 +272,7 @@ class FuncionalidadesExtra:
                         f.write(f"{'─'*70}\n")
                         orden_actual = orden_id
                     
-                    alerta = " ⚠️ FUERA DE RANGO" if fuera else ""
+                    alerta = "FUERA DE RANGO" if fuera else ""
                     f.write(f"  • {analisis}: {valor} {unidad} ")
                     f.write(f"(Rango: {vmin}-{vmax}){alerta}\n")
                     if fecha_res:

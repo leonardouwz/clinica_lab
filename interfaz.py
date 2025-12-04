@@ -537,25 +537,31 @@ class ClinicalLabManager:
         
         ttk.Label(frame, text="ESTADÍSTICAS DE ANÁLISIS", font=('Arial', 14, 'bold')).pack(pady=10)
         
-        # Frame para selección de fechas
-        frame_fechas = ttk.LabelFrame(frame, text="Período de Análisis", padding=10)
-        frame_fechas.pack(pady=10)
+        # Frame para selección de fechas y tipo de análisis
+        frame_filtros = ttk.LabelFrame(frame, text="Filtros", padding=10)
+        frame_filtros.pack(pady=10, fill='x')
         
-        ttk.Label(frame_fechas, text="Desde:").grid(row=0, column=0, padx=5)
-        self.entry_fecha_desde = ttk.Entry(frame_fechas, width=15)
+        ttk.Label(frame_filtros, text="Desde:").grid(row=0, column=0, padx=5)
+        self.entry_fecha_desde = ttk.Entry(frame_filtros, width=15)
         self.entry_fecha_desde.insert(0, (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
         self.entry_fecha_desde.grid(row=0, column=1, padx=5)
         
-        ttk.Label(frame_fechas, text="Hasta:").grid(row=0, column=2, padx=5)
-        self.entry_fecha_hasta = ttk.Entry(frame_fechas, width=15)
+        ttk.Label(frame_filtros, text="Hasta:").grid(row=0, column=2, padx=5)
+        self.entry_fecha_hasta = ttk.Entry(frame_filtros, width=15)
         self.entry_fecha_hasta.insert(0, datetime.now().strftime('%Y-%m-%d'))
         self.entry_fecha_hasta.grid(row=0, column=3, padx=5)
         
+        # Combo para tipo de análisis
+        ttk.Label(frame_filtros, text="Tipo Análisis:").grid(row=1, column=0, padx=5, pady=5)
+        self.combo_tipo_analisis = ttk.Combobox(frame_filtros, width=40, state='readonly')
+        self.combo_tipo_analisis.grid(row=1, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
+        self.cargar_tipos_analisis_combo()
+        
         ttk.Button(
-            frame_fechas,
+            frame_filtros,
             text="Generar Estadísticas",
             command=self.mostrar_estadisticas
-        ).grid(row=0, column=4, padx=10)
+        ).grid(row=2, column=3, padx=10, pady=5)
         
         # Treeview para estadísticas
         columns = ('Análisis', 'Total', 'Promedio', 'Mínimo', 'Máximo', 'Fuera Rango', '% Fuera')
@@ -570,10 +576,64 @@ class ClinicalLabManager:
         
         self.tree_stats.pack(side='left', fill='both', expand=True, pady=10)
         scrollbar.pack(side='right', fill='y')
+
+    def cargar_tipos_analisis_combo(self):
+        """Cargar tipos de análisis en el combobox"""
+        from funcionalidades_extra import FuncionalidadesExtra
+        extra = FuncionalidadesExtra()
         
-        # Cargar estadísticas iniciales
-        self.mostrar_estadisticas()
-    
+        analisis_list = extra.listar_tipos_analisis()
+        
+        # Agregar opción "Todos"
+        valores = ["TODOS"]
+        self.tipos_analisis_dict = {0: "TODOS"}
+        
+        for analisis in analisis_list:
+            id_analisis, codigo, nombre, vmin, vmax, unidad = analisis
+            texto = f"{codigo} - {nombre}"
+            valores.append(texto)
+            self.tipos_analisis_dict[id_analisis] = texto
+        
+        self.combo_tipo_analisis['values'] = valores
+        self.combo_tipo_analisis.current(0)
+
+    def mostrar_estadisticas(self):
+        """REQUISITO 6: Mostrar estadísticas optimizadas por período y tipo"""
+        # Limpiar tabla
+        for item in self.tree_stats.get_children():
+            self.tree_stats.delete(item)
+        
+        try:
+            fecha_desde = self.entry_fecha_desde.get()
+            fecha_hasta = self.entry_fecha_hasta.get()
+            
+            # Obtener tipo de análisis seleccionado
+            seleccion = self.combo_tipo_analisis.get()
+            tipo_analisis_id = None
+            
+            if seleccion != "TODOS":
+                # Buscar ID del tipo seleccionado
+                for id_tipo, texto in self.tipos_analisis_dict.items():
+                    if texto == seleccion:
+                        tipo_analisis_id = id_tipo
+                        break
+            
+            # REQUISITO 6: Consulta optimizada de estadísticas
+            from estadisticas import obtener_estadisticas_periodo_filtradas
+            estadisticas = obtener_estadisticas_periodo_filtradas(
+                fecha_desde, fecha_hasta, tipo_analisis_id
+            )
+            
+            if not estadisticas:
+                messagebox.showinfo("Sin datos", "No hay resultados en el período seleccionado")
+                return
+            
+            for row in estadisticas:
+                self.tree_stats.insert('', 'end', values=row)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al generar estadísticas: {str(e)}")
+
     def mostrar_estadisticas(self):
         """REQUISITO 6: Mostrar estadísticas optimizadas por período"""
         # Limpiar tabla
@@ -608,15 +668,21 @@ class ClinicalLabManager:
         frame_buscar = ttk.Frame(frame)
         frame_buscar.pack(pady=10)
         
-        ttk.Label(frame_buscar, text="ID de Resultado:").grid(row=0, column=0, padx=5)
+        ttk.Label(frame_buscar, text="Tabla:").grid(row=0, column=0, padx=5)
+        self.combo_tabla_audit = ttk.Combobox(frame_buscar, width=15, state='readonly',
+                                            values=['pacientes', 'ordenes', 'resultados'])
+        self.combo_tabla_audit.current(2)  # Por defecto 'resultados'
+        self.combo_tabla_audit.grid(row=0, column=1, padx=5)
+        
+        ttk.Label(frame_buscar, text="ID de Registro:").grid(row=0, column=2, padx=5)
         self.entry_audit_id = ttk.Entry(frame_buscar, width=20)
-        self.entry_audit_id.grid(row=0, column=1, padx=5)
+        self.entry_audit_id.grid(row=0, column=3, padx=5)
         
         ttk.Button(
             frame_buscar,
             text="Consultar Auditoría",
             command=self.consultar_auditoria
-        ).grid(row=0, column=2, padx=10)
+        ).grid(row=0, column=4, padx=10)
         
         # Treeview para auditoría
         columns = ('Fecha', 'Acción', 'Usuario', 'Detalles', 'IP')
@@ -636,17 +702,19 @@ class ClinicalLabManager:
     def consultar_auditoria(self):
         """REQUISITO 4: Consultar trazabilidad completa de accesos"""
         try:
-            resultado_id = int(self.entry_audit_id.get())
+            tabla = self.combo_tabla_audit.get()
+            registro_id = int(self.entry_audit_id.get())
             
             # Limpiar tabla
             for item in self.tree_audit.get_children():
                 self.tree_audit.delete(item)
             
-            from auditoria import consultar_auditoria_resultado
-            registros = consultar_auditoria_resultado(resultado_id)
+            from auditoria import consultar_auditoria_tabla
+            registros = consultar_auditoria_tabla(tabla, registro_id)
             
             if not registros:
-                messagebox.showinfo("Sin registros", f"No hay auditoría para el resultado ID {resultado_id}")
+                messagebox.showinfo("Sin registros", 
+                    f"No hay auditoría para {tabla} ID {registro_id}")
                 return
             
             for row in registros:
@@ -1004,16 +1072,16 @@ class ClinicalLabManager:
             
             if stats:
                 texto = f"ESTADÍSTICAS - PACIENTE ID: {paciente_id}\n"
-                texto += "="*70 + "\n\n"
-                texto += f"{'Análisis':<25} {'Valor':<12} {'Fecha':<20} {'Estado':<15}\n"
-                texto += "-"*70 + "\n"
+                texto += "="*80 + "\n\n"
+                texto += f"{'ID Res':<8} {'Análisis':<20} {'Valor':<12} {'Fecha':<20} {'Estado':<15}\n"
+                texto += "-"*80 + "\n"
                 
                 for row in stats:
-                    nombre, valor, fecha, fuera, vmin, vmax, unidad = row
+                    resultado_id, nombre, valor, fecha, fuera, vmin, vmax, unidad = row
                     estado = "FUERA" if fuera else "✓ Normal"
                     fecha_str = fecha.strftime('%Y-%m-%d %H:%M') if fecha else "N/A"
-                    texto += f"{nombre:<25} {valor:<6}{unidad:<6} {fecha_str:<20} {estado:<15}\n"
-                    texto += f"  Rango normal: {vmin}-{vmax} {unidad}\n\n"
+                    texto += f"{resultado_id:<8} {nombre:<20} {valor:<6}{unidad:<6} {fecha_str:<20} {estado:<15}\n"
+                    texto += f"         Rango normal: {vmin}-{vmax} {unidad}\n\n"
                 
                 self.text_stats_paciente.insert(1.0, texto)
             else:

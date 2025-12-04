@@ -30,3 +30,24 @@ def consultar_auditoria_resultado(resultado_id):
             return cursor.fetchall()
     finally:
         db.release_connection(conn)
+    
+def consultar_auditoria_tabla(tabla, registro_id):
+    """
+    Consultar historial completo de accesos a cualquier tabla
+    """
+    from database import Database
+    db = Database()
+    conn = db.get_connection()
+    
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT fecha, accion, usuario, detalles, ip_address
+                FROM auditoria_accesos
+                WHERE tabla = %s AND registro_id = %s
+                ORDER BY fecha DESC
+            """, (tabla, registro_id))
+            
+            return cursor.fetchall()
+    finally:
+        db.release_connection(conn)

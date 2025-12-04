@@ -37,7 +37,7 @@ def obtener_estadisticas_periodo(fecha_inicio, fecha_fin):
 
 def obtener_estadisticas_paciente(paciente_id):
     """
-    Estadísticas de un paciente específico
+    Estadísticas de un paciente específico con ID de resultado
     """
     db = Database()
     conn = db.get_connection()
@@ -46,6 +46,7 @@ def obtener_estadisticas_paciente(paciente_id):
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT 
+                    r.id,
                     ta.nombre,
                     r.valor,
                     r.fecha_resultado,
@@ -61,6 +62,51 @@ def obtener_estadisticas_paciente(paciente_id):
                 ORDER BY r.fecha_resultado DESC
                 LIMIT 50
             """, (paciente_id,))
+            
+            return cursor.fetchall()
+    finally:
+        db.release_connection(conn)
+
+def obtener_estadisticas_periodo_filtradas(fecha_inicio, fecha_fin, tipo_analisis_id=None):
+    """
+    REQUISITO 6: Optimizar consultas de estadísticas por período y tipo de análisis
+    """
+    db = Database()
+    conn = db.get_connection()
+    
+    try:
+        with conn.cursor() as cursor:
+            query = """
+                SELECT 
+                    ta.nombre AS analisis,
+                    COUNT(*) AS total_realizados,
+                    ROUND(AVG(r.valor), 2) AS promedio,
+                    MIN(r.valor) AS minimo,
+                    MAX(r.valor) AS maximo,
+                    SUM(CASE WHEN r.fuera_rango = TRUE THEN 1 ELSE 0 END) AS fuera_rango_count,
+                    ROUND(
+                        SUM(CASE WHEN r.fuera_rango = TRUE THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                        2
+                    ) AS porcentaje_fuera_rango
+                FROM resultados r
+                JOIN tipos_analisis ta ON r.tipo_analisis_id = ta.id
+                WHERE r.fecha_resultado BETWEEN %s AND %s
+                AND r.valor IS NOT NULL
+            """
+            
+            params = [fecha_inicio, fecha_fin]
+            
+            # Filtrar por tipo de análisis si se especifica
+            if tipo_analisis_id is not None and tipo_analisis_id != 0:
+                query += " AND r.tipo_analisis_id = %s"
+                params.append(tipo_analisis_id)
+            
+            query += """
+                GROUP BY ta.id, ta.nombre
+                ORDER BY total_realizados DESC
+            """
+            
+            cursor.execute(query, params)
             
             return cursor.fetchall()
     finally:
